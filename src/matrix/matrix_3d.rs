@@ -4,11 +4,11 @@ use crate::vector::vector_3d::Vector3D;
 
 #[repr(C)]
 #[derive(Debug, Clone, Copy, Default, PartialEq)]
-pub struct Matrix3D([[f32; 3]; 3]);
+pub struct Matrix3D(pub [[f32; 3]; 3]);
 
 #[warn(dead_code)]
 impl Matrix3D {
-    fn new(
+    pub fn new(
         n00: f32,
         n01: f32,
         n02: f32,
@@ -21,7 +21,7 @@ impl Matrix3D {
     ) -> Self {
         Matrix3D([[n00, n10, n20], [n01, n11, n21], [n02, n12, n22]])
     }
-    fn new_with_vectors(row1: Vector3D, row2: Vector3D, row3: Vector3D) -> Self {
+    pub fn new_with_vectors(row1: Vector3D, row2: Vector3D, row3: Vector3D) -> Self {
         Matrix3D([
             [row1.x, row2.x, row3.x],
             [row1.y, row2.y, row3.y],
@@ -29,7 +29,7 @@ impl Matrix3D {
         ])
     }
 
-    fn get(&self, i: usize, j: usize) -> Option<&f32> {
+    pub fn get(&self, i: usize, j: usize) -> Option<&f32> {
         if i < 3 && j < 3 {
             Some(&self.0[i][j])
         } else {
@@ -37,7 +37,7 @@ impl Matrix3D {
         }
     }
 
-    fn get_mut(&mut self, i: usize, j: usize) ->  Option<&mut f32> {
+    pub fn get_mut(&mut self, i: usize, j: usize) ->  Option<&mut f32> {
         if i < 3 && j < 3 {
             Some(&mut self.0[i][j])
         } else {
@@ -45,14 +45,14 @@ impl Matrix3D {
         }
     }
 
-    fn get_vector(&self, j: usize) -> Option<&Vector3D> {
+    pub fn get_vector(&self, j: usize) -> Option<&Vector3D> {
         if j < 3 {
             unsafe { Some(&*(&self.0[j] as *const [f32; 3] as *const Vector3D)) }
         }else{
             None
         }
     }
-    fn get_mut_vector(&mut self, j: usize) -> Option<&mut Vector3D> {
+    pub fn get_mut_vector(&mut self, j: usize) -> Option<&mut Vector3D> {
         if j < 3 {
             unsafe { Some(&mut *(&mut self.0[j] as *mut [f32; 3] as *mut Vector3D)) }
         }else{
@@ -60,17 +60,67 @@ impl Matrix3D {
         }
 
     }
-    fn transpose(&self){}
+    pub fn transpose(&self) -> Self{
+        let mut transposed = [[0.0f32;3];3];
+        for i in 0..3{
+            for j in 0..3{
+                transposed[i][j] = self.0[j][i];
+            }
+        }
+        Matrix3D(transposed)
+    }
+    pub fn transpose_mut(&mut self) -> &mut Self{
+        let mut transposed = [[0.0f32;3];3];
+        for i in 0..3{
+            for j in 0..3{
+                transposed[i][j] = self.0[j][i];
+            }
+        }
+        self.0 = transposed;
+        self
+    }
 }
+
+impl Mul<Vector3D> for Matrix3D {
+    type Output = Vector3D;
+    fn mul(mut self, rhs: Vector3D) -> Self::Output {
+        self.transpose_mut();
+        self.0.iter().map(|row|{
+            row.iter()
+                .zip(rhs.into_iter())
+                .map(|(a,b)| a * b)
+                .sum::<f32>()
+        }).collect::<Vec<f32>>()
+        .try_into().unwrap()
+    }
+}
+
 impl MulAssign<Matrix3D> for Matrix3D{
     fn mul_assign(&mut self, rhs: Matrix3D) {
+        let mut rhs = rhs.transpose();
+        self.0.iter_mut().for_each(|row|{
+            rhs.0.iter_mut().for_each(|col|{
+                row.iter_mut().zip(col.iter_mut())
+                    .for_each(|(a,b)| *a *= *b);
+            });
+        });
 
     }
 }
 impl Mul<Matrix3D> for Matrix3D{
     type Output = Matrix3D;
     fn mul(self, rhs: Matrix3D) -> Self::Output {
-        self.0.iter()
+        let rhs = rhs.transpose();
+        self.0.iter().map(|row|{
+            rhs.0.iter().map(|col|{
+                row.iter()
+                    .zip(col.iter())
+                    .map(|(a,b)| a * b)
+                    .sum::<f32>()
+            }).collect::<Vec<f32>>()
+            .try_into().unwrap()
+        }).collect::<Vec<[f32;3]>>()
+        .try_into().unwrap()
 
     }
 }
@@ -178,7 +228,7 @@ impl TryFrom<Vec<[f32;3]>> for Matrix3D{
 }
 
 #[cfg(test)]
-mod tests {
+mod test_matrix_3d {
     use super::*;
 
     #[test]
@@ -326,5 +376,21 @@ mod tests {
         let m:Matrix3D = m_vec.try_into().expect("Failed to transfor the Vec<[f32;3]> into a Matrix3D");
         assert_eq!(m,res);
 
+    }
+    #[test]
+    fn mul_assign_matrix(){
+        todo!()
+    }
+    #[test]
+    fn mul_matrix(){
+        todo!()
+    }
+    #[test]
+    fn mul_matrix_with_vector(){
+        let m = Matrix3D::new(1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0);
+        let v = Vector3D::new(1.0, 2.0, 3.0);
+        let res = Vector3D::new(14.0,32.0,50.0);
+        let mul = m * v;
+        assert_eq!(mul,res);
     }
 }

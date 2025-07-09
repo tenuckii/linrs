@@ -1,5 +1,7 @@
 use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 
+use crate::matrix::matrix_3d::Matrix3D;
+
 #[repr(C)]
 #[derive(Debug, Clone, Copy, Default, PartialEq)]
 pub struct Vector3D {
@@ -12,6 +14,19 @@ pub struct Vector3D {
 impl Vector3D {
     pub fn new(x: f32, y: f32, z: f32) -> Self {
         Vector3D { x, y, z }
+    }
+
+    pub fn map<F>(&self, mut f:F) -> Self
+        where F: FnMut(f32)-> f32
+    {
+            Self { x:f(self.x), y: f(self.y), z: f(self.z) }
+    }
+    pub fn for_each<F>(&mut self, mut f: F )
+        where F: FnMut(&mut f32)
+    {
+        f(&mut self.x);
+        f(&mut self.y);
+        f(&mut self.z);
     }
 
     pub fn get_mut(&mut self, index: usize) -> Option<&mut f32> {
@@ -37,6 +52,8 @@ impl Vector3D {
         *self / self.magnitude()
     }
 }
+
+
 //Vector3D operations
 impl AddAssign<Vector3D> for Vector3D {
     fn add_assign(&mut self, rhs: Vector3D) {
@@ -123,6 +140,35 @@ impl Neg for Vector3D {
     type Output = Vector3D;
     fn neg(self) -> Self::Output {
         Vector3D::new(-self.x, -self.y, -self.z)
+    }
+}
+
+impl IntoIterator for Vector3D{
+    type Item = f32;
+    type IntoIter = std::array::IntoIter<f32,3>;
+    fn into_iter(self) -> Self::IntoIter {
+        std::array::IntoIter::new([self.x,self.y,self.z])
+    }
+}
+impl<'a> IntoIterator for &'a Vector3D{
+    type Item = f32;
+    type IntoIter = std::array::IntoIter<f32,3>;
+    fn into_iter(self) -> Self::IntoIter {
+        std::array::IntoIter::new([self.x,self.y,self.z])
+    }
+}
+
+impl TryFrom<Vec<f32>> for Vector3D{
+    type Error = & 'static str;
+    fn try_from(value: Vec<f32>) -> Result<Self, Self::Error> {
+        if value.len() != 3 {
+            return Err("Expected Vec with exactly 3 rows");
+        }
+
+        let array: [f32;3] = value
+            .try_into()
+            .map_err(|_| "Failed to convert Vec to 3x3 array")?;
+        Ok(Vector3D{x: array[0], y: array[1], z: array[2]})
     }
 }
 
