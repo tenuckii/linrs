@@ -97,14 +97,7 @@ impl Mul<Vector3D> for Matrix3D {
 
 impl MulAssign<Matrix3D> for Matrix3D{
     fn mul_assign(&mut self, rhs: Matrix3D) {
-        let mut rhs = rhs.transpose();
-        self.0.iter_mut().for_each(|row|{
-            rhs.0.iter_mut().for_each(|col|{
-                row.iter_mut().zip(col.iter_mut())
-                    .for_each(|(a,b)| *a *= *b);
-            });
-        });
-
+        *self  = *self * rhs;
     }
 }
 impl Mul<Matrix3D> for Matrix3D{
@@ -379,11 +372,19 @@ mod test_matrix_3d {
     }
     #[test]
     fn mul_assign_matrix(){
-        todo!()
+        let mut m = Matrix3D::new(1.0, 2.0, 3.0, 1.0, 2.0, 3.0, 1.0, 2.0, 3.0);
+        let m2 = Matrix3D::new(1.0, 2.0, 3.0, 1.0, 2.0, 3.0, 1.0, 2.0, 3.0);
+        m *= m2;
+        let res = Matrix3D::new(6.0, 12.0, 18.0, 6.0, 12.0, 18.0, 6.0, 12.0, 18.0);
+        assert_eq!(m, res);
     }
     #[test]
     fn mul_matrix(){
-        todo!()
+        let m = Matrix3D::new(1.0, 2.0, 3.0, 1.0, 2.0, 3.0, 1.0, 2.0, 3.0);
+        let m2 = Matrix3D::new(1.0, 2.0, 3.0, 1.0, 2.0, 3.0, 1.0, 2.0, 3.0);
+        let m = m * m2;
+        let res = Matrix3D::new(6.0, 12.0, 18.0, 6.0, 12.0, 18.0, 6.0, 12.0, 18.0);
+        assert_eq!(m, res);
     }
     #[test]
     fn mul_matrix_with_vector(){
